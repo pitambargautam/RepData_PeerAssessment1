@@ -1,25 +1,114 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+author: "pitambar Gautam: template after RDPeng"
+date: "2020/10/9"
+output: html_document
 ---
 
-
 ## Loading and preprocessing the data
+```{r data_load_chunk, echo=TRUE}
+activity <- read.table (file ="activity.csv",header = TRUE, sep =",")
+head(activity)
+tail(activity)
+summary(activity)
+```
+## Histogram of Daily Steps data
+```{r histogram_chunk, echo=TRUE}
+## install.packages("ggplot2")
+require(ggplot2) 
+daily_steps <- aggregate(steps ~ date, activity, sum)
+head(daily_steps)
+str(daily_steps)
+hist_ds<- hist(daily_steps$steps, main = "Histogram of Daily Steps", xlab = "Daily Steps", ylab = "No. of Days")
+
+```
 
 
+```{r summary_of_ daily_steps_chunk, echo=TRUE}
+## Summary of Daily Steps data
+summary(daily_steps$steps)
 
-## What is mean total number of steps taken per day?
+```
 
+## Average daily activity pattern:
+## Mean and Median number of steps taken per day
+```{r mean_median_chunk, echo=TRUE}
+mean_daily_steps <- mean(daily_steps$steps)
+mean_daily_steps
+median_daily_steps <- median(daily_steps$steps)
+median_daily_steps
+```
+## Time-series of total steps taken per day
+```{r time_series_plot_chunk, echo=TRUE}
+daily_steps$date <- as.Date(daily_steps$date)
+daily_steps <- daily_steps[order(daily_steps$date) , ]
+plot(daily_steps$steps~daily_steps$date, type="b", lwd=3, col=rgb(0.1,0.7,0.1,0.8), main = "Time-series Steps Data",ylab="Total Daily Steps", xlab="Date" , bty="l" , pch=20 , cex=4) + abline(h=seq(0,100,10), col="grey", lwd=0.8)
+```
+## 5-minute time interval total steps Time-series data
+```{r interval_w_max_steps_chunk, echo=TRUE}
+interval_steps <- aggregate(steps ~ interval, activity, mean)
+interval_steps <- interval_steps[order(interval_steps$steps, decreasing = TRUE) , ]
+head(interval_steps)
+interval_maxsteps <-interval_steps$interval[1]
+interval_maxsteps
+```
 
+```{r interval_mean_addcol_chunk, echo=TRUE}
+activity["interval_meansteps"]<- NA
+activity$interval_meansteps = interval_steps$steps
+# activity <- activity[order(activity$interval_meansteps, decreasing = TRUE) , ]
+head(activity)
+```
 
-## What is the average daily activity pattern?
+## Imputing missing values (replace by interval mean)
 
+```{r fill_steps_with-interval-meansteps_chunk, echo=TRUE}
 
+# No. of missing values from sumary above = 2304
+activity["filled_steps"]<- NA # an empty (na) column added
+activity$filled_steps = activity$steps  # content replaced by steps column data
+# code to replace by overall mean steps:
+# activity$filled_steps = ifelse(is.na(activity$filled_steps),ave(activity$steps,  (+contd..)
+# FUN = function (x) mean (x, na.rm =TRUE)), activity$filled_steps)
+activity$filled_steps = ifelse(is.na(activity$filled_steps), activity$interval_meansteps, activity$filled_steps)
+head(activity)
+```
 
-## Imputing missing values
+## Average daily activity pattern (after imputing data):
 
+```{r histogram_chunk_for_filled_daily_steps_chunk, echo=TRUE}
+## Histogram od Daily Steps (revised) data 
+## install.packages("ggplot2")
+require(ggplot2) 
+daily_steps_filled <- aggregate(filled_steps ~ date, activity, sum)
+head(daily_steps_filled)
+str(daily_steps_filled)
+hist_dsfilled<- hist(daily_steps_filled$filled_steps, main = "Histogram of Daily Steps (revised)", xlab = "Daily Steps (revised)", ylab = "No. of Days")
+```
+## Summary of Daily Steps Data:
+```{r summary_of_ daily_steps_filled_chunk, echo=TRUE}
+summary(daily_steps_filled$filled_steps)
 
+```
+## Mean and Median number of steps taken per day:
+```{r mean_median_for_filled_steps_chunk, echo=TRUE}
+mean_daily_steps_filled <- mean(daily_steps_filled$filled_steps)
+mean_daily_steps_filled
+median_daily_steps_filled <- median(daily_steps_filled$filled_steps)
+median_daily_steps_filled
+```
+## Differences in activity patterns between weekdays and weekends:
+```{r weekdays_weekends_discrimination_chunk, echo=TRUE}
+activity$date <-as.Date(activity$date) #conversion to date format for conversion with weekdays to week's day
+activity$day_class <-  ifelse(as.POSIXlt(activity$date)$wday %in% c(0,6), 'weekend', 'weekday')
+head(activity)
+```
 
-## Are there differences in activity patterns between weekdays and weekends?
+```{r time_series_plots_for_weekdays_n_weekends_chunk, echo=TRUE}
+interval_steps_filled <- aggregate(filled_steps ~ interval + day_class, data = activity, mean)
+head(interval_steps_filled)
+ggplot(interval_steps_filled, aes(interval, filled_steps)) + 
+    geom_line() + 
+    facet_grid(day_class ~ .) + xlab("interval (each 5 minutes)") + ylab("Average Number of Steps")
+  
+```
